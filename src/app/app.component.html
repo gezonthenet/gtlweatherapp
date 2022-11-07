@@ -6,6 +6,29 @@
   </div>
 </div>
 
+<div class="realtimeTopRow">
+  <div>
+    <button (click)="showHideDatasets()" class="showHideAllDatasets">
+      <div>
+        <div>TOGGLE</div>
+        <ng-template *ngTemplateOutlet="updateAge"></ng-template>
+      </div>
+    </button>
+  </div>
+  <div *ngFor="let dataset of lineChartData.datasets; let index = index;">
+    <button  [ngStyle]="{ 'background-color': chart ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+      <div>
+        <div>{{dataset.label}}</div>
+        <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>
+      </div>
+    </button>
+  </div>
+  <div>
+    <button (click)="showHideDatasetsReset()" class="showHideAllDatasets">RESET</button>
+  </div>
+</div>
+
+
 <ng-container *ngIf="!(ecowittApiService.API_KEY && ecowittApiService.APPLICATION_KEY)">
   <h1>Enter your Ecowitt API key and APPLICATION key</h1>
   <form [formGroup]="appKeysForm" (ngSubmit)="appKeySubmit()">
@@ -40,7 +63,7 @@
       <button (click)="showHideDatasets()" class="showHideAllDatasets">
         <div>
           <div>TOGGLE</div>
-          <div>As at {{secondsSinceLastUpdate}}s ago</div>
+          <ng-template *ngTemplateOutlet="updateAge"></ng-template>
         </div>
       </button>
     </th>
@@ -54,8 +77,7 @@
       </button>
     </th>
   </tr>
-  <!--<tr *ngFor="let label of lineChartData.labels.reverse(); let index = index;">-->
-  <tr *ngFor="let label of lineChartData.labels.reverse(); let index = index;">
+  <tr *ngFor="let label of lineChartData.labels.slice().reverse(); let index = index;">
     <td>{{label}}</td>
     <td *ngFor="let dataset of lineChartData.datasets;">
       {{dataset.data[dataset.data.length - 1 - index]}}
@@ -63,4 +85,10 @@
   </tr>
 </table>
 
-
+<ng-template #updateAge>
+  <div>As at&nbsp;
+    <span class="realtimeValue">
+      {{secondsSinceLastUpdate}}s
+    </span>ago
+  </div>
+</ng-template>

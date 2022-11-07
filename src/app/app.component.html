@@ -1,0 +1,66 @@
+<div class="heading">
+  <div *ngIf="fetchingData">
+    <div class="loadingio-spinner-pulse-tywoscelc5"><div class="ldio-4q77ihb5mxf">
+      <div></div><div></div><div></div>
+      </div></div>
+  </div>
+</div>
+
+<ng-container *ngIf="!(ecowittApiService.API_KEY && ecowittApiService.APPLICATION_KEY)">
+  <h1>Enter your Ecowitt API key and APPLICATION key</h1>
+  <form [formGroup]="appKeysForm" (ngSubmit)="appKeySubmit()">
+
+    <label for="appKey">APPLICATION Key: </label>
+    <input id="appKey" type="text" formControlName="appKey">
+  
+    <label for="apiKey">API Key: </label>
+    <input id="apiKey" type="text" formControlName="apiKey">
+    <button type="submit">Submit</button>
+  </form>
+</ng-container>
+
+
+<div class="chart-holder">
+  
+  <canvas baseChart
+    [datasets]="lineChartData.datasets"
+    [labels]="lineChartData.labels"
+    [options]="lineChartOptions"
+    [chartType]="lineChartType"
+    [plugins]="chartPlugins">
+  </canvas>
+</div>
+<div *ngIf="(ecowittApiService.API_KEY && ecowittApiService.APPLICATION_KEY)" class="resetButtons">
+  <button *ngFor="let type of types" (click)="showHideDatasetsByType(type)" class="showHideAllDatasets">{{type}} only</button>
+  <button (click)="showHideDatasetsReset()" class="showHideAllDatasets">RESET</button>
+</div>
+<table class="readings-table" *ngIf="lineChartData.datasets.length > 0">
+  <tr>
+    <th>
+      <button (click)="showHideDatasets()" class="showHideAllDatasets">
+        <div>
+          <div>TOGGLE</div>
+          <div>As at {{secondsSinceLastUpdate}}s ago</div>
+        </div>
+      </button>
+    </th>
+    <th *ngFor="let dataset of lineChartData.datasets; let index = index;">
+      <!---->
+      <button  [ngStyle]="{ 'background-color': chart ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+        <div>
+          <div>{{dataset.label}}</div>
+          <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>
+        </div>
+      </button>
+    </th>
+  </tr>
+  <!--<tr *ngFor="let label of lineChartData.labels.reverse(); let index = index;">-->
+  <tr *ngFor="let label of lineChartData.labels.reverse(); let index = index;">
+    <td>{{label}}</td>
+    <td *ngFor="let dataset of lineChartData.datasets;">
+      {{dataset.data[dataset.data.length - 1 - index]}}
+    </td>
+  </tr>
+</table>
+
+

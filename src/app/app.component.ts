@@ -24,7 +24,7 @@ export class AppComponent implements OnInit{
   weatherReadings: any;
   sensorMappings: {[key: string]: string} = {
     temp_and_humidity_ch1: 'Shed',
-    temp_and_humidity_ch2: 'Deck',
+    temp_and_humidity_ch2: 'Office',
     temp_and_humidity_ch3: 'Dungeon',
     soil_ch1: 'Dungeon',
     rainfall: 'Rain',

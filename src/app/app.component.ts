@@ -26,6 +26,8 @@ export class AppComponent implements OnInit{
     temp_and_humidity_ch1: 'Shed',
     temp_and_humidity_ch2: 'Office',
     temp_and_humidity_ch3: 'Dungeon',
+    temp_and_humidity_ch4: 'Subfloor',
+    temp_and_humidity_ch5: 'Bedroom',
     soil_ch1: 'Dungeon',
     rainfall: 'Rain',
     solar_and_uvi: 'Sun'

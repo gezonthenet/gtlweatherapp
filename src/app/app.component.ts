@@ -59,6 +59,8 @@ export class AppComponent implements OnInit{
   public lineChartOptions: CustomizeChartOptions = {};
   @ViewChild(BaseChartDirective, { static: true }) chart?: BaseChartDirective;
 
+  public datasetVisibilityTracking: {[key: number]: boolean} = {};
+
   constructor(
     public ecowittApiService: EcowittApiService,
     private router: Router,
@@ -418,6 +420,23 @@ export class AppComponent implements OnInit{
     console.log("lineChartData", this.lineChartData);
     console.log("lineChartOptions", this.lineChartOptions);
     this.fetchingData = false;
+    timer(50).subscribe(() => {
+      this.updateDatasetVisibility();
+    });
+  }
+
+  updateDatasetVisibility() {
+    console.log("updateDatasetVisibility", this.datasetVisibilityTracking);
+    this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
+      if (this.datasetVisibilityTracking[i] !== undefined && dataset._meta) {
+        Object.keys(dataset._meta).forEach(key => {
+          dataset._meta[key].hidden = !this.datasetVisibilityTracking[i]
+          dataset.hidden = !this.datasetVisibilityTracking[i];
+        });
+      }
+    });
+    console.log(this.chart);
+    this.triggerChartUpdate();
   }
   
 
@@ -428,17 +447,18 @@ export class AppComponent implements OnInit{
           const current = !dataset._meta[key].hidden
           dataset._meta[key].hidden = current || null
           dataset.hidden = current || null;
+          this.datasetVisibilityTracking[i] = !dataset.hidden;
         });
       }
     });
-    //this.chart?.legend.legendItems.forEach((item: any, i: number) => {
     console.log(this.chart);
     this.triggerChartUpdate();
   }
 
   showHideDatasetsReset() {
-    this.lineChartData?.datasets?.forEach((dataset: any) => {
+    this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
       dataset.hidden = false;
+      this.datasetVisibilityTracking[i] = true;
       Object.keys(dataset._meta).forEach(key => {
         dataset._meta[key].hidden = null;
       });
@@ -448,8 +468,9 @@ export class AppComponent implements OnInit{
   }
 
   showHideDatasetsByType(type: string) {
-    this.lineChartData?.datasets?.forEach((dataset: any) => {
+    this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
       dataset.hidden = dataset.label.includes(type) ? false : true;
+      this.datasetVisibilityTracking[i] = !dataset.hidden;
       Object.keys(dataset._meta).forEach(key => {
         dataset._meta[key].hidden = (dataset.label.includes(type) ? false : true) || null;
       });

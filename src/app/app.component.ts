@@ -9,7 +9,7 @@ import { CompressionService } from './compression.service';
 import  { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions, ChartType } from "chart.js";
 import * as ChartAnnotation from 'chartjs-plugin-annotation';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 
@@ -44,9 +44,9 @@ export class AppComponent implements OnInit{
     datasets: [],
     labels: []
   };
-  public appKeysForm: FormGroup = new FormGroup({
-    apiKey: new FormControl(),
-    appKey: new FormControl(),
+  public appKeysForm: UntypedFormGroup = new UntypedFormGroup({
+    apiKey: new UntypedFormControl(),
+    appKey: new UntypedFormControl(),
   });
   public fetchingData: boolean = true;
   public realTime: any = {};

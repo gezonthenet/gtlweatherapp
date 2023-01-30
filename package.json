@@ -19,7 +19,6 @@
     "@angular/platform-browser-dynamic": "~12.2.0",
     "@angular/router": "~12.2.0",
     "@types/chart.js": "^2.9.32",
-    "angular2-csv": "^0.2.9",
     "chart.js": "^2.9.4",
     "chartjs-plugin-annotation": "^0.5.7",
     "chartjs-plugin-datalabels": "^1.0.0",

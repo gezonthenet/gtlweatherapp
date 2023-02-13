@@ -418,6 +418,7 @@ export class AppComponent implements OnInit{
               text:'Temperatures & Humidity'
         },
         legend: {
+          display: false,
           position: 'top',
           labels: {
           }

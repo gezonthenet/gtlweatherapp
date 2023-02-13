@@ -52,7 +52,7 @@
 </ng-container>
 
 
-<div class="chart-holder" [style.width]="wideMode ? '200vw' : 'unset'">
+<div class="chart-holder" [style.width]="wideMode ? '200vw' : 'unset'" [style.height]="wideMode ? '70vh' : 'unset'">
   
   <canvas baseChart
     [datasets]="lineChartData.datasets"

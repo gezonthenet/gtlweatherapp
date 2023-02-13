@@ -2,16 +2,17 @@ import { Component, OnInit, ViewChild, EventEmitter } from '@angular/core';
 import { EcowittApiService } from './ecowitt-api.service';
 import { Router, NavigationEnd, Event } from '@angular/router';
 import { first, filter } from 'rxjs/operators';
-import { timer } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
 import { diff, addedDiff, deletedDiff, updatedDiff, detailedDiff } from 'deep-object-diff';
 import { CompressionService } from './compression.service';
-//import { ChartDataSets, ChartOptions, ChartConfiguration, ChartType, ChartPluginsOptions } from 'chart.js';
 import  { BaseChartDirective } from 'ng2-charts';
-import { ChartConfiguration, ChartOptions, ChartType } from "chart.js";
-import * as ChartAnnotation from 'chartjs-plugin-annotation';
+import { Chart, ChartConfiguration, ChartOptions, ChartType } from "chart.js";
 import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import Annotation from 'chartjs-plugin-annotation';
+import 'chartjs-adapter-moment';
 
+Chart.register(Annotation);
 
 @Component({
   selector: 'app-root',
@@ -54,6 +55,13 @@ export class AppComponent implements OnInit{
   public secondsSinceLastUpdate: number = 0;
   public getNewestWeatherReading: EventEmitter<boolean> = new EventEmitter();
   public types: string[] = ['temperature', 'humidity', 'soilmoisture', 'daily', 'rain_rate', 'solar']; //daily => rainfall
+  public timeOptions: string[] = ['24h', '48h', '7d', '1m', '3m', '6m', '1y', '2y', '5y'];
+  public selectedTimeOption: string = '24h';
+  public defaultSelectedTimeOption: string = '24h';
+  public wideMode: boolean = false;
+  public firstSub: Subscription = new Subscription();
+  public secondSub: Subscription = new Subscription();
+  public thirdSub: Subscription = new Subscription();
 
 
   public lineChartOptions: CustomizeChartOptions = {};
@@ -79,10 +87,31 @@ export class AppComponent implements OnInit{
         this.ecowittApiService.APPLICATION_KEY = document.cookie.split('gtlweatherapp_app_key=')[1].split(';')[0];
         this.appKeysForm.get('apiKey')?.setValue(this.ecowittApiService.API_KEY);
         this.appKeysForm.get('appKey')?.setValue(this.ecowittApiService.APPLICATION_KEY);
+      }
+
+      console.log("url", this.router);
+      if (this.router.url.includes('apiKey') && this.router.url.includes('appKey')) {
+        this.ecowittApiService.API_KEY = this.router.url.split('apiKey=')[1].split('&')[0];
+        this.ecowittApiService.APPLICATION_KEY = this.router.url.split('appKey=')[1].split('&')[0];
+        this.appKeysForm.get('apiKey')?.setValue(this.ecowittApiService.API_KEY);
+        this.appKeysForm.get('appKey')?.setValue(this.ecowittApiService.APPLICATION_KEY);
+      }
+
+      //get the time option from the url parameter timeOption
+      if (this.router.url.includes('timeOption')) {
+        this.selectedTimeOption = this.router.url.split('timeOption=')[1].split('&')[0];
+      } else {
+        this.selectedTimeOption = this.defaultSelectedTimeOption;
+      }
+
+      //if we have the app and api keys, then we can get the data
+      if (this.ecowittApiService.API_KEY && this.ecowittApiService.APPLICATION_KEY) {
         this.getNewestWeatherReading.emit(true);
       }
-      
     });
+
+    //allow the apiKey and appKey to be set via url parameters
+    
 
     this.getNewestWeatherReading.subscribe(() => {
       this.ecowittApiService.executeEcowittApiCall(this.ecowittApiService.getDevices(), {}).subscribe((devices: any) => {
@@ -108,18 +137,35 @@ export class AppComponent implements OnInit{
                 //get the date now in the format 2022-10-20 23:59:59
                 
                 //perfom the following every 5 minutes
-                timer(0, 1000*60*5).subscribe(() => {
+                this.firstSub.unsubscribe();
+                this.firstSub = timer(0, 1000*60*5).subscribe(() => {
                   this.fetchingData = true;
                   let now = new Date();
                   let nowString = now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate()+' '+now.getHours()+':'+now.getMinutes()+':'+now.getSeconds();
                   //get the date 24 hours ago in the format 2022-10-20 23:59:59
-                  let yesterday = new Date();
-                  yesterday.setDate(yesterday.getDate() - 1);
-                  let yesterdayString = yesterday.getFullYear()+'-'+(yesterday.getMonth()+1)+'-'+yesterday.getDate()+' '+yesterday.getHours()+':'+yesterday.getMinutes()+':'+yesterday.getSeconds();
+                  //get the offset date based on the selected time option, make it customisable by looking at the digit and the unit (h, d, m, y)
+                  let offsetDate = new Date();
+                  let offset = 0;
+                  if (this.selectedTimeOption.includes('h')) {
+                    offset = parseInt(this.selectedTimeOption.split('h')[0]);
+                    offsetDate.setHours(offsetDate.getHours() - offset);
+                  } else if (this.selectedTimeOption.includes('d')) {
+                    offset = parseInt(this.selectedTimeOption.split('d')[0]);
+                    offsetDate.setDate(offsetDate.getDate() - offset);
+                  } else if (this.selectedTimeOption.includes('m')) {
+                    offset = parseInt(this.selectedTimeOption.split('m')[0]);
+                    offsetDate.setMonth(offsetDate.getMonth() - offset);
+                  } else if (this.selectedTimeOption.includes('y')) {
+                    offset = parseInt(this.selectedTimeOption.split('y')[0]);
+                    offsetDate.setFullYear(offsetDate.getFullYear() - offset);
+                  }
+                  
+
+                  let offsetDateString = offsetDate.getFullYear()+'-'+(offsetDate.getMonth()+1)+'-'+offsetDate.getDate()+' '+offsetDate.getHours()+':'+offsetDate.getMinutes()+':'+offsetDate.getSeconds();
                   this.ecowittApiService.executeEcowittApiCall(this.ecowittApiService.getHistory({
                     mac: device.mac,
                     end_date: nowString,
-                    start_date: yesterdayString,
+                    start_date: offsetDateString,
                     devices: sensorString //'outdoor,indoor.humidity'
                   }), {}).subscribe((result: any) => {
                     console.log("history", result);
@@ -128,7 +174,8 @@ export class AppComponent implements OnInit{
                   });
                 });
 
-                timer(500, 1000*30).subscribe(() => {
+                this.secondSub.unsubscribe();
+                this.secondSub = timer(500, 1000*30).subscribe(() => {
                   let newDate: Date;
                   
                   this.ecowittApiService.executeEcowittApiCall(this.ecowittApiService.getRealtime({
@@ -157,7 +204,8 @@ export class AppComponent implements OnInit{
                   });
                 });
 
-                timer(5000, 1000).subscribe(() => {
+                this.thirdSub.unsubscribe();
+                this.thirdSub = timer(5000, 1000).subscribe(() => {
                   //console.log("updating seconds since last update", this.lastRealtimeUpdate);
                   this.secondsSinceLastUpdate = this.getSecondsAgo(this.lastRealtimeUpdate);
                 });
@@ -204,11 +252,11 @@ export class AppComponent implements OnInit{
           });
 
           //do a switch case statement for yAxisID based on type
-          let yAxisID = 'y-axis-0';
-          if (type === 'humidity') yAxisID = 'y-axis-1';
-          if (type === 'soilmoisture') yAxisID = 'y-axis-2';
-          if (type === 'daily' || type === 'rain_rate') yAxisID = 'y-axis-3';
-          if (type === 'solar') yAxisID = 'y-axis-4';
+          let yAxisID = 'y';
+          if (type === 'humidity') yAxisID = 'y1';
+          if (type === 'soilmoisture') yAxisID = 'y2';
+          if (type === 'daily' || type === 'rain_rate') yAxisID = 'y3';
+          if (type === 'solar') yAxisID = 'y4';
 
           let tmpD: any = {
             data: temperatures,
@@ -283,13 +331,13 @@ export class AppComponent implements OnInit{
       maintainAspectRatio: false,
       scales: {
         // We use this empty structure as a placeholder for dynamic theming.
-        xAxes: [{
+        x: {
           type: 'time',
           ticks: {
               autoSkip: true,
               maxTicksLimit: 20
           }
-        }],
+        },
         //xAxes: [{
         //	id: 'x-axis-0',
         //	display: true,
@@ -303,119 +351,106 @@ export class AppComponent implements OnInit{
         //	//	max: parseFloat(properties.terrain[properties.terrain.length -1].d)
         //	//},
         //}],
-        yAxes: [
-          {
-            id: 'y-axis-0',
-            position: 'right',
-            ticks: {
-              //min: 0,
-              //max: 50
-            },
-            scaleLabel: {
-              display: true,
-              labelString: 'Degrees Celcius'
-            }
-          },
-          { 
-            id: 'y-axis-1',
-            position: 'right',
-            ticks: {
-              //min: 0,
-              //max: 100
-            },
-            scaleLabel: {
-              display: true,
-              labelString: 'Humidity %'
-            }
-          },
-          { 
-            id: 'y-axis-2',
-            position: 'right',
-            ticks: {
-              min: 0,
-              max: 100
-            },
-            scaleLabel: {
-              display: true,
-              labelString: 'Soil Moisture %'
-            }
-          },
-          { 
-            id: 'y-axis-3',
-            position: 'right',
-            ticks: {
-              min: 0,
-              suggestedMax: 10
-            },
-            scaleLabel: {
-              display: true,
-              labelString: 'Rain mm'
-            }
-          },
-          { 
-            id: 'y-axis-4',
-            position: 'left',
-            ticks: {
-              min: 0,
-              max: 4000
-            },
-            scaleLabel: {
-              display: true,
-              labelString: 'Solar'
-            }
-          },
-          //{
-          //  id: 'y-axis-1',
-          //  position: 'right',
-          //  ticks: {
-          //    //suggestedMax: maxHeight*2,
-          //  },
-          //  scaleLabel: {
-          //    display: true,
-          //    labelString: 'Weighted SINR'
-          //  }
-          //}
-        ]
+        y: {
+          position: 'right',
+          //min: 0,
+          //max: 50,
+          title: {
+            display: true,
+            text: 'Degrees Celcius'
+          }
+        },
+        y1: { 
+          position: 'right',
+          //min: 0,
+          //max: 100,
+          title: {
+            display: true,
+            text: 'Humidity %'
+          }
+        },
+        y2:{ 
+          position: 'right',
+          min: 0,
+          max: 100,
+          title: {
+            display: true,
+            text: 'Soil Moisture %'
+          }
+        },
+        y3: { 
+          position: 'right',
+          min: 0,
+          suggestedMax: 10,
+          title: {
+            display: true,
+            text: 'Rain mm'
+          }
+        },
+        y4: { 
+          position: 'left',
+          min: 0,
+          max: 4000,
+          title: {
+            display: true,
+            text: 'Solar'
+          }
+        },
+        //{
+        //  id: 'y-axis-1',
+        //  position: 'right',
+        //  ticks: {
+        //    //suggestedMax: maxHeight*2,
+        //  },
+        //  scaleLabel: {
+        //    display: true,
+        //    labelString: 'Weighted SINR'
+        //  }
+        //}
       },
-      tooltips: {
-        mode: 'x',
-        intersect: false,
+      plugins: {
+        tooltip: {
+          mode: 'x',
+          intersect: false,
+        },
+        title: {
+          display: true,
+              text:'Temperatures & Humidity'
+        },
+        legend: {
+          position: 'top',
+          labels: {
+          }
+        },
+        annotation: {
+          //annotations: [
+          //  {
+          //    type: 'line',
+          //    scaleID: 'x-axis-0',
+          //    value: this._iterationToUse,
+          //    borderColor: 'red',
+          //    borderWidth: 6,
+          //    label: {
+          //      //position: 'left',
+          //      xAdjust: -250 * (this._iterationToUse < data.rsrp.weighted_rsrp.length / 2 ? -1 : 1),
+          //      yAdjust: 30,
+          //      enabled: true,
+          //      color: 'orange',
+          //      content: annotationText,
+          //      font: {
+          //        weight: 'bold'
+          //      }
+          //    }
+          //  },
+          //]
+        }
+
       },
       hover: {
         mode: 'x',
         intersect: false
       },
-      title: {
-        display: true,
-            text:'Temperatures & Humidity'
-      },
-      legend: {
-        position: 'top',
-        labels: {
-        }
-      },
-      annotation: {
-        //annotations: [
-        //  {
-        //    type: 'line',
-        //    scaleID: 'x-axis-0',
-        //    value: this._iterationToUse,
-        //    borderColor: 'red',
-        //    borderWidth: 6,
-        //    label: {
-        //      //position: 'left',
-        //      xAdjust: -250 * (this._iterationToUse < data.rsrp.weighted_rsrp.length / 2 ? -1 : 1),
-        //      yAdjust: 30,
-        //      enabled: true,
-        //      color: 'orange',
-        //      content: annotationText,
-        //      font: {
-        //        weight: 'bold'
-        //      }
-        //    }
-        //  },
-        //]
-      }
+      
     };
     console.log("lineChartData", this.lineChartData);
     console.log("lineChartOptions", this.lineChartOptions);
@@ -481,7 +516,7 @@ export class AppComponent implements OnInit{
 
 
   triggerChartUpdate() {
-    if (this.chart) {
+    if (this.chart?.chart) {
       this.chart.chart.update();
     }
   }

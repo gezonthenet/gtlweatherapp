@@ -16,7 +16,7 @@
     </button>
   </div>
   <div *ngFor="let dataset of lineChartData.datasets; let index = index;">
-    <button  [ngStyle]="{ 'background-color': chart ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+    <button  [ngStyle]="{ 'background-color': chart && chart.datasets ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
       <div>
         <div>{{dataset.label}}</div>
         <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>
@@ -25,6 +25,15 @@
   </div>
   <div>
     <button (click)="showHideDatasetsReset()" class="showHideAllDatasets">RESET</button>
+  </div>
+  <div>
+    <button><a [href]="'./?appKey='+ecowittApiService.APPLICATION_KEY+'&apiKey='+ecowittApiService.API_KEY+'&timeOption='+selectedTimeOption">SHARE</a></button>
+  </div>
+  <div>
+    <button *ngFor="let tO of timeOptions" (click)="selectedTimeOption = tO; getNewestWeatherReading.emit(true);" [class.activeTimeOption]="selectedTimeOption === tO">{{tO}}</button>
+  </div>
+  <div>
+    <button (click)="wideMode = !wideMode; triggerChartUpdate()">{{wideMode ? 'NOMRAL' : 'WIDE'}}</button>
   </div>
 </div>
 
@@ -43,13 +52,13 @@
 </ng-container>
 
 
-<div class="chart-holder">
+<div class="chart-holder" [style.width]="wideMode ? '200vw' : 'unset'">
   
-  <canvas baseChart
+  <canvas baseChart height="70vh"
     [datasets]="lineChartData.datasets"
     [labels]="lineChartData.labels"
     [options]="lineChartOptions"
-    [chartType]="lineChartType"
+    [type]="lineChartType"
     [plugins]="chartPlugins">
   </canvas>
 </div>
@@ -69,7 +78,7 @@
     </th>
     <th *ngFor="let dataset of lineChartData.datasets; let index = index;">
       <!---->
-      <button  [ngStyle]="{ 'background-color': chart ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+      <button  [ngStyle]="{ 'background-color': chart && chart.datasets ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
         <div>
           <div>{{dataset.label}}</div>
           <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>

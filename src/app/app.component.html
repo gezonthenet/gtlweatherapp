@@ -16,7 +16,7 @@
     </button>
   </div>
   <div *ngFor="let dataset of lineChartData.datasets; let index = index;">
-    <button  [ngStyle]="{ 'background-color': chart && chart.datasets ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+    <button  [ngStyle]="{ 'background-color': chart && chart.chart && chart.chart.legend && chart.chart.legend.legendItems ? chart.chart.legend.legendItems[index].strokeStyle : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
       <div>
         <div>{{dataset.label}}</div>
         <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>
@@ -78,7 +78,7 @@
     </th>
     <th *ngFor="let dataset of lineChartData.datasets; let index = index;">
       <!---->
-      <button  [ngStyle]="{ 'background-color': chart && chart.datasets ? chart.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+      <button  [ngStyle]="{ 'background-color': chart && chart.chart && chart.chart.legend && chart.chart.legend.legendItems ? chart.chart.legend.legendItems[index].strokeStyle : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
         <div>
           <div>{{dataset.label}}</div>
           <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>

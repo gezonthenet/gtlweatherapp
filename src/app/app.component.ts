@@ -268,7 +268,7 @@ export class AppComponent implements OnInit{
             borderWidth: type === 'temperature' ? 4 : 1,
             //xAxisID: 'x-axis-0',
             //type: 'line',
-            //borderColor: 'blue',
+            //borderColor: '',
             //backgroundColor: 'blue',
             //pointBackgroundColor: 'blue',
             //pointBorderColor: 'blue',
@@ -463,11 +463,8 @@ export class AppComponent implements OnInit{
   updateDatasetVisibility() {
     console.log("updateDatasetVisibility", this.datasetVisibilityTracking);
     this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
-      if (this.datasetVisibilityTracking[i] !== undefined && dataset._meta) {
-        Object.keys(dataset._meta).forEach(key => {
-          dataset._meta[key].hidden = !this.datasetVisibilityTracking[i]
-          dataset.hidden = !this.datasetVisibilityTracking[i];
-        });
+      if (this.datasetVisibilityTracking[i] !== undefined) {
+        dataset.hidden = !this.datasetVisibilityTracking[i];
       }
     });
     console.log(this.chart);
@@ -478,12 +475,12 @@ export class AppComponent implements OnInit{
   showHideDatasets(index?: number) {
     this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
       if (index === undefined || index === i) {
-        Object.keys(dataset._meta).forEach(key => {
-          const current = !dataset._meta[key].hidden
-          dataset._meta[key].hidden = current || null
-          dataset.hidden = current || null;
-          this.datasetVisibilityTracking[i] = !dataset.hidden;
-        });
+        //Object.keys(dataset._meta).forEach(key => {
+        //  const current = !dataset._meta[key].hidden
+        //  dataset._meta[key].hidden = current || null
+        //});
+        dataset.hidden = !dataset.hidden;
+        this.datasetVisibilityTracking[i] = !dataset.hidden;
       }
     });
     console.log(this.chart);
@@ -494,9 +491,9 @@ export class AppComponent implements OnInit{
     this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
       dataset.hidden = false;
       this.datasetVisibilityTracking[i] = true;
-      Object.keys(dataset._meta).forEach(key => {
-        dataset._meta[key].hidden = null;
-      });
+      //Object.keys(dataset._meta).forEach(key => {
+      //  dataset._meta[key].hidden = null;
+      //});
       console.log("dataset", dataset);
     });
     this.triggerChartUpdate();
@@ -506,9 +503,9 @@ export class AppComponent implements OnInit{
     this.lineChartData?.datasets?.forEach((dataset: any, i: number) => {
       dataset.hidden = dataset.label.includes(type) ? false : true;
       this.datasetVisibilityTracking[i] = !dataset.hidden;
-      Object.keys(dataset._meta).forEach(key => {
-        dataset._meta[key].hidden = (dataset.label.includes(type) ? false : true) || null;
-      });
+      //Object.keys(dataset._meta).forEach(key => {
+      //  dataset._meta[key].hidden = (dataset.label.includes(type) ? false : true) || null;
+      //});
       //console.log("dataset", dataset);
     });
     this.triggerChartUpdate();

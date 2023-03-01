@@ -1,18 +1,14 @@
-import { Component, OnInit, ViewChild, EventEmitter } from '@angular/core';
+import { Component, OnInit, EventEmitter } from '@angular/core';
 import { EcowittApiService } from './ecowitt-api.service';
-import { Router, NavigationEnd, Event } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { first, filter } from 'rxjs/operators';
 import { Subscription, timer } from 'rxjs';
-import { diff, addedDiff, deletedDiff, updatedDiff, detailedDiff } from 'deep-object-diff';
-import { CompressionService } from './compression.service';
-import  { BaseChartDirective } from 'ng2-charts';
-import { Chart, ChartConfiguration, ChartOptions, ChartType } from "chart.js";
-import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
+import { Chart, ChartOptions, ChartType, registerables } from "chart.js";
+import { UntypedFormControl, UntypedFormGroup } from '@angular/forms';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import Annotation from 'chartjs-plugin-annotation';
 import 'chartjs-adapter-moment';
 
-Chart.register(Annotation);
+Chart.register(...registerables);
 
 @Component({
   selector: 'app-root',
@@ -36,15 +32,13 @@ export class AppComponent implements OnInit{
   showAllDatasets: boolean = true;
 
   //chart
+  public lineChartOptions: ChartOptions = {};
   public lineChartType: ChartType = 'line';
-  public scatterChartType = 'scatter';
-  //public lineChartPlugins = [ChartAnnotation];
- // public lineChartData: ChartConfiguration['data'] = {
-  public chartPlugins = [ChartDataLabels];
   public lineChartData: any = {
     datasets: [],
     labels: []
   };
+  public chartPlugins = [ChartDataLabels];
   public appKeysForm: UntypedFormGroup = new UntypedFormGroup({
     apiKey: new UntypedFormControl(),
     appKey: new UntypedFormControl(),
@@ -63,16 +57,45 @@ export class AppComponent implements OnInit{
   public secondSub: Subscription = new Subscription();
   public thirdSub: Subscription = new Subscription();
 
-
-  public lineChartOptions: CustomizeChartOptions = {};
-  @ViewChild(BaseChartDirective, { static: true }) chart?: BaseChartDirective;
+  public chart: Chart | undefined;
 
   public datasetVisibilityTracking: {[key: number]: boolean} = {};
 
+  public chartCollorPallette: string[] =  [
+    '#FF9900',
+    '#109618',
+    '#3366CC',
+    '#DC3912',
+    '#3B3EAC',
+    '#990099',
+    '#0099C6',
+    '#DD4477',
+    '#66AA00',
+    '#B82E2E',
+    '#316395',
+    '#994499',
+    '#22AA99',
+    '#AAAA11',
+    '#6633CC',
+    '#E67300',
+    '#8B0707',
+    '#329262',
+    '#5574A6',
+    '#3B3EAC',
+  ];
+
+  customColorSensors: {[key: string]: string} = {
+    soilmoisture: 'chocolate',
+    daily: 'blue',
+    rain_rate: 'rgb(95, 162, 247)',
+    solar: '#F6BE00',
+  };
+
+
+
   constructor(
     public ecowittApiService: EcowittApiService,
-    private router: Router,
-    private compressionService: CompressionService
+    private router: Router
   ) { }
 
   ngOnInit() {
@@ -236,8 +259,9 @@ export class AppComponent implements OnInit{
     };
 
     let labels: {[key: string]: boolean} = {};
-    Object.keys(this.weatherReadings.data).forEach((sensor: string) => {
-      this.types.forEach(type => {
+    let useColorIndex = 0;
+    Object.keys(this.weatherReadings.data).forEach((sensor: string, index: number) => {
+      this.types.forEach((type: string, sensorIndex: number) => {
         if (this.weatherReadings.data[sensor][type]) {
           let temperatures: number[] = [];
           Object.keys(this.weatherReadings.data[sensor][type].list).sort().forEach((timestamp: string) => {
@@ -261,14 +285,14 @@ export class AppComponent implements OnInit{
           let tmpD: any = {
             data: temperatures,
             label: (this.sensorMappings[sensor] || sensor)+' '+type,
-            fill: false,
+            //fill: false,
             yAxisID: yAxisID,
             tension: 0.4,
             //borderDash: type === 'temperature' ? [] : [5, 5],
             borderWidth: type === 'temperature' ? 4 : 1,
             //xAxisID: 'x-axis-0',
             //type: 'line',
-            //borderColor: '',
+            borderColor: this.customColorSensors[type] ? this.customColorSensors[type] : this.chartCollorPallette[useColorIndex]+(sensorIndex ? '80' : ''),
             //backgroundColor: 'blue',
             //pointBackgroundColor: 'blue',
             //pointBorderColor: 'blue',
@@ -279,14 +303,13 @@ export class AppComponent implements OnInit{
               }
             }
           };
-          if (type === 'daily') tmpD.borderColor = 'blue';
-          if (type === 'soilmoisture') tmpD.borderColor = 'chocolate';
+          if (this.customColorSensors[type]) useColorIndex--;
           if (type === 'solar')  {
-            tmpD.borderColor = tmpD.backgroundColor = '#F6BE00';
+            tmpD.borderColor = tmpD.backgroundColor = this.customColorSensors[type];
             tmpD.fill = true;
           }
           if (type === 'rain_rate') {
-            tmpD.borderColor = tmpD.backgroundColor = 'rgb(95, 162, 247)';
+            tmpD.borderColor = tmpD.backgroundColor = this.customColorSensors[type];
             tmpD.fill = true;
             tmpD.datalabels = {
               labels: {
@@ -302,6 +325,7 @@ export class AppComponent implements OnInit{
           this.lineChartData?.datasets?.push(tmpD);
         }
       });
+      useColorIndex++;
     });
 
     this.lineChartData.labels = Object.keys(labels).sort();
@@ -423,29 +447,6 @@ export class AppComponent implements OnInit{
           labels: {
           }
         },
-        annotation: {
-          //annotations: [
-          //  {
-          //    type: 'line',
-          //    scaleID: 'x-axis-0',
-          //    value: this._iterationToUse,
-          //    borderColor: 'red',
-          //    borderWidth: 6,
-          //    label: {
-          //      //position: 'left',
-          //      xAdjust: -250 * (this._iterationToUse < data.rsrp.weighted_rsrp.length / 2 ? -1 : 1),
-          //      yAdjust: 30,
-          //      enabled: true,
-          //      color: 'orange',
-          //      content: annotationText,
-          //      font: {
-          //        weight: 'bold'
-          //      }
-          //    }
-          //  },
-          //]
-        }
-
       },
       hover: {
         mode: 'x',
@@ -455,6 +456,16 @@ export class AppComponent implements OnInit{
     };
     console.log("lineChartData", this.lineChartData);
     console.log("lineChartOptions", this.lineChartOptions);
+
+    if (this.chart) this.chart.destroy();
+    this.chart = new Chart("baseChart", {
+      type: this.lineChartType,
+      data: this.lineChartData,
+      options: this.lineChartOptions,
+      plugins: this.chartPlugins
+    });
+
+
     this.fetchingData = false;
     timer(50).subscribe(() => {
       this.updateDatasetVisibility();
@@ -514,8 +525,8 @@ export class AppComponent implements OnInit{
 
 
   triggerChartUpdate() {
-    if (this.chart?.chart) {
-      this.chart.chart.update();
+    if (this.chart) {
+      this.chart.update();
     }
   }
 
@@ -589,7 +600,6 @@ export class AppComponent implements OnInit{
     return (meters / 1000).toFixed(2)+' km';
   }
 
-  
 
 }
 
@@ -597,8 +607,4 @@ export interface deviceMetrics {
   sensor: string;
   measurement: string;
   value: any;
-}
-
-interface CustomizeChartOptions extends ChartOptions {
-  annotation?: any;
 }

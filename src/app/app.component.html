@@ -16,7 +16,7 @@
     </button>
   </div>
   <div *ngFor="let dataset of lineChartData.datasets; let index = index;">
-    <button  [ngStyle]="{ 'background-color': chart && chart.chart && chart.chart.legend && chart.chart.legend.legendItems ? chart.chart.legend.legendItems[index].strokeStyle : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+    <button  [ngStyle]="{ 'background-color': chart && chart.data && chart.data.datasets ? chart.data.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
       <div>
         <div>{{dataset.label}}</div>
         <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>
@@ -53,13 +53,7 @@
 
 
 <div class="chart-holder" [style.width]="wideMode ? '200vw' : 'unset'" [style.height]="wideMode ? '70vh' : 'unset'">
-  
-  <canvas baseChart
-    [datasets]="lineChartData.datasets"
-    [labels]="lineChartData.labels"
-    [options]="lineChartOptions"
-    [type]="lineChartType"
-    [plugins]="chartPlugins">
+  <canvas id="baseChart">
   </canvas>
 </div>
 <div *ngIf="(ecowittApiService.API_KEY && ecowittApiService.APPLICATION_KEY)" class="resetButtons">
@@ -77,8 +71,7 @@
       </button>
     </th>
     <th *ngFor="let dataset of lineChartData.datasets; let index = index;">
-      <!---->
-      <button  [ngStyle]="{ 'background-color': chart && chart.chart && chart.chart.legend && chart.chart.legend.legendItems ? chart.chart.legend.legendItems[index].strokeStyle : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
+      <button  [ngStyle]="{ 'background-color': chart && chart.data && chart.data.datasets ? chart.data.datasets[index].borderColor : '#fff'}" (click)="showHideDatasets(index);" [class.hidden]="dataset.hidden">
         <div>
           <div>{{dataset.label}}</div>
           <div *ngIf="realTime[dataset.label]" [title]="parseDate(realTime[dataset.label].time*1000)" class="realtimeValue">{{realTime[dataset.label].value}}</div>

@@ -205,7 +205,7 @@ export class AppComponent implements OnInit{
                     mac: device.mac,
                     devices: sensorString //'outdoor,indoor.humidity'
                   }), {}).subscribe((result: any) => {
-                    console.log("realtime", result);
+                    //console.log("realtime 1", result);
                     if (result && result.data) {
                       Object.keys(result.data).forEach((sensor: string) => {
                         this.types.forEach(type => {
@@ -221,7 +221,6 @@ export class AppComponent implements OnInit{
                         });
                       });
                     }
-                    console.log(this.realTime);
                     this.lastRealtimeUpdate = newDate;
                     if (this.weatherReadings) this.plotChart();
                   });
@@ -230,7 +229,7 @@ export class AppComponent implements OnInit{
                 this.thirdSub.unsubscribe();
                 this.thirdSub = timer(5000, 1000).subscribe(() => {
                   //console.log("updating seconds since last update", this.lastRealtimeUpdate);
-                  this.secondsSinceLastUpdate = this.getSecondsAgo(this.lastRealtimeUpdate);
+                  if (this.lastRealtimeUpdate) this.secondsSinceLastUpdate = this.getSecondsAgo(this.lastRealtimeUpdate);
                 });
 
 
@@ -258,6 +257,34 @@ export class AppComponent implements OnInit{
       labels: []
     };
 
+    //sometimes if the battery or signal is low, the data is not returned, so we need to check for that
+    //we first get a list of all the labels, then we loop through all the sensors and types and check that there is a reading for that label
+    let rawLabels: {[key: string]: boolean} = {};
+    Object.keys(this.weatherReadings.data).forEach((sensor: string, index: number) => {
+      this.types.forEach((type: string, sensorIndex: number) => {
+        if (this.weatherReadings.data[sensor][type]) {
+          Object.keys(this.weatherReadings.data[sensor][type].list).sort().forEach((timestamp: string) => {
+            rawLabels[timestamp] = true;
+          });
+        }
+      });
+    });
+
+    //Loop through all the labels, and if there isn't a reading for that time, add a null value
+    Object.keys(this.weatherReadings.data).forEach((sensor: string, index: number) => {
+      this.types.forEach((type: string, sensorIndex: number) => {
+        if (this.weatherReadings.data[sensor][type]) {
+          //loop through all the labels and check that there is a reading for that time, if not, add a null value
+          Object.keys(rawLabels).forEach((label: string) => {
+            if (isNaN(parseFloat(this.weatherReadings.data[sensor][type].list[label]))) {
+              this.weatherReadings.data[sensor][type].list[label] = null;
+            }
+          });
+        }
+      });
+    });
+
+    //now that we have all the labels, we can loop through them and add them to the chart
     let labels: {[key: string]: boolean} = {};
     let useColorIndex = 0;
     Object.keys(this.weatherReadings.data).forEach((sensor: string, index: number) => {

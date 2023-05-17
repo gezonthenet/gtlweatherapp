@@ -5,11 +5,13 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CompressionService } from './compression.service';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { LabelPipe } from './label.pipe';
 
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    LabelPipe
   ],
   imports: [
     BrowserModule,
